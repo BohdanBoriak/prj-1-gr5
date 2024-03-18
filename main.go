@@ -1,38 +1,61 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"project-go/domain"
+	"sort"
 	"strconv"
 	"time"
 )
 
-var (
-	points int    = 50
-	id     uint64 = 1
-)
+var id uint64 = 1
 
-const pointPerQuestion = 5
+const (
+	totalPoints      = 5
+	pointPerQuestion = 5
+)
 
 func main() {
 	fmt.Println("Вітаю у грі HARGCORE-MATH!")
 	time.Sleep(2 * time.Second)
 
-	for {
-		menu()
-		punct := ""
-		fmt.Scan(&punct)
+	var users []domain.User
+	users = append(users, domain.User{
+		Id:       1,
+		NickName: "Katastrofa",
+		Time:     5 * time.Second})
+	users = append(users, domain.User{
+		Id:       2,
+		NickName: "Revenger",
+		Time:     3 * time.Second})
+	users = append(users, domain.User{
+		Id:       3,
+		NickName: "Bohdan",
+		Time:     10 * time.Second})
 
-		switch punct {
-		case "1":
-			u := play()
-		case "2":
-			fmt.Println("Рейтинг в розробці...")
-		case "3":
-			return
-		}
-	}
+	sortAndSave(users)
+
+	// for {
+	// 	menu()
+	// 	punct := ""
+	// 	fmt.Scan(&punct)
+
+	// 	switch punct {
+	// 	case "1":
+	// 		u := play()
+	// 		users = append(users, u)
+	// 	case "2":
+	// 		for _, user := range users {
+	// 			fmt.Printf("Id: %v, Name: %s, Time: %v\n",
+	// 				user.Id, user.NickName, user.Time)
+	// 		}
+	// 	case "3":
+	// 		return
+	// 	}
+	// }
 }
 
 func menu() {
@@ -47,9 +70,10 @@ func play() domain.User {
 		time.Sleep(1 * time.Second)
 	}
 
+	points := totalPoints
 	myPoints := 0
 	start := time.Now()
-	for myPoints < 50 {
+	for myPoints < totalPoints {
 		x, y := rand.Intn(100), rand.Intn(100)
 		res := x + y
 
@@ -92,4 +116,33 @@ func play() domain.User {
 	id++
 
 	return user
+}
+
+func sortAndSave(users []domain.User) {
+	sort.SliceStable(users, func(i, j int) bool {
+		return users[i].Time < users[j].Time
+	})
+
+	file, err := os.OpenFile(
+		"users.json",
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
+		0755)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
+
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			fmt.Printf("Error: %s", err)
+		}
+	}(file)
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(users)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
 }
